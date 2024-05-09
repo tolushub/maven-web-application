@@ -1,0 +1,59 @@
+pipeline{
+  agent {
+    label 'master'
+  } 
+  tools {
+    maven 'maven3.9.6'
+  }
+  //options{}
+  //triggers{}
+  stages {
+    stage('1Clone'){
+      steps{
+        sh "echo 'cloning the latest application version' "
+        git "https://github.com/tolushub/maven-web-application.git"
+        sh "echo 'latest application version available for testing and build' "
+      }
+    }
+    stage('2TestBuild'){
+      steps{
+        sh "echo 'running JUnit-test-cases' "
+        sh "echo 'testing must passed to create artifacts ' "
+        sh "mvn clean package" 
+      }
+    }
+       stage('3CodeQualityAnalysis'){
+    steps{
+        sh "echo setup sonarQube authentication"
+        sh "echo 'Perfoming CodeQualityAnalysis' "
+        sh "mvn sonar:sonar"      
+    }
+   }
+   stage('4UploadArtifacts'){
+    steps{
+      sh "echo configure nexus authentication"
+      sh "mvn deploy"
+      sh "echo artifacts uploaded"
+    }
+   }
+     stage('5deploy') {
+    steps{
+      deploy adapters: [tomcat9(credentialsId: 'tomcatUser-credentials', path: '', url: 'http://44.211.149.23:8080/')], contextPath: null, war: 'target/*war'
+    }
+   }
+  }
+  post{ 
+    always{
+emailext body: 'Great job team', recipientProviders: [developers(), buildUser()], subject: 'Build Success', to: 'toluojo01@gmail.com'
+
+    }
+    success{
+emailext body: 'Great job team', recipientProviders: [developers(), buildUser()], subject: 'Build Success', to: 'toluojo01@gmail.com'
+
+    }
+    failure{
+emailext body: 'Great job team', recipientProviders: [developers(), buildUser()], subject: 'Build Success', to: 'toluojo01@gmail.com'
+
+    }
+}
+}
